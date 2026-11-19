@@ -51,9 +51,7 @@ async function finishQuiz() {
 }
 
 function renderResult() {
-  const counts = answers.reduce((a,v) => (a[v] = (a[v] || 0) + 1, a), {});
-  const top = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,3);
-  shell(`<section class="hero"><div class="eyebrow">PROFILE GENERATED</div><h1>Твой техно-<br><span>профиль готов</span></h1><p class="lead">Ответы сохранены. Это краткая сводка выбранных предпочтений, а не рейтинг производителей.</p><div class="result-list">${top.map(([k,v]) => `<div><span>${esc(k)}</span><strong>${v} выбор(а)</strong></div>`).join("")}</div>${button("Посмотреть статистику",'id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</section>`);
+  shell(`<section class="hero"><div class="eyebrow">PROFILE GENERATED</div><h1>Твой техно-<br><span>профиль готов</span></h1><p class="lead">Готово: сохранено ${answers.length} ответов. Твои ответы не публикуются по отдельности — в общей статистике отображаются только суммарные значения.</p>${button("Посмотреть статистику",'id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</section>`);
   root.querySelector("#stats").addEventListener("click", renderStats);
   root.querySelector("#logout").addEventListener("click", async () => { await signOut(); session = null; renderHome(); });
 }
@@ -65,7 +63,12 @@ async function renderStats() {
   try {
     const data = await loadRealStats();
     const target = root.querySelector("#real-stats");
-    target.innerHTML = data.length ? data.map(x => `<div class="stat-row"><span>${esc(x.answer_label)}</span><strong>${Number(x.response_count)}</strong></div>`).join("") : "Пока нет ответов для отображения.";
+    target.innerHTML = data.length ? data.map(x => {
+      const q = questions[Number(x.question_index)];
+      const option = q?.options.find(([code]) => code === x.answer_code);
+      const label = option?.[1] ?? x.answer_code;
+      return `<div class="stat-row"><span>Вопрос ${Number(x.question_index) + 1}: ${esc(label)}</span><strong>${Number(x.response_count)}</strong></div>`;
+    }).join("") : "Пока нет ответов для отображения.";
   } catch (e) { root.querySelector("#real-stats").textContent = "Реальная статистика появится после настройки базы данных."; }
 }
 
