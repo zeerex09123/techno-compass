@@ -40,12 +40,14 @@ set search_path = ''
 stable
 as $$
   select item.ordinality::integer as question_index,
-         item.value #>> '{}' as answer_code,
+         item.value ->> 'answer_code' as answer_code,
          count(*) as response_count
   from public.survey_responses r
   cross join lateral jsonb_array_elements(r.answers)
     with ordinality as item(value, ordinality)
-  group by item.ordinality, item.value #>> '{}'
+  where jsonb_typeof(item.value) = 'object'
+    and item.value ? 'answer_code'
+  group by item.ordinality, item.value ->> 'answer_code'
   order by item.ordinality, count(*) desc;
 $$;
 
