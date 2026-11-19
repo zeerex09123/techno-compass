@@ -1,7 +1,7 @@
 import "./styles.css";
 import { signIn, signOut, getSession } from "./auth/auth.js";
 import { questions, saveAnswers } from "./quiz/quiz.js";
-import { demoStats, loadRealStats } from "./statistics/statistics.js";
+import { syntheticStats, loadRealStats } from "./statistics/statistics.js";
 import { isSupabaseConfigured, supabase } from "./database/supabase.js";
 
 const root = document.querySelector("#app");
@@ -68,20 +68,42 @@ function renderResult() {
   root.querySelector("#logout").addEventListener("click", handleLogout);
 }
 
+function renderStatsGroup(title, description, rows) {
+  const grouped = new Map();
+  rows.forEach(row => {
+    const questionIndex = Number(row.question_index);
+    if (!Number.isInteger(questionIndex) || questionIndex < 1 || questionIndex > questions.length) return;
+    if (!grouped.has(questionIndex)) grouped.set(questionIndex, []);
+    grouped.get(questionIndex).push({ code: row.answer_code, count: Number(row.response_count) || 0 });
+  });
+
+  const content = questions.map((question, index) => {
+    const entries = grouped.get(index + 1) ?? [];
+    const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+    if (!total) return "";
+    return `<div class="stats-question"><h4>${esc(question.title)}</h4>${entries.map(entry => {
+      const option = question.options.find(([code]) => code === entry.code);
+      const label = option?.[1] ?? entry.code ?? "Неизвестный ответ";
+      const percent = Math.round(entry.count / total * 100);
+      return `<div class="stat-row"><span>${esc(label)}</span><strong>${percent}% · ${entry.count}</strong><i style="width:${percent}%"></i></div>`;
+    }).join("")}<p class="stats-total">Ответов на вопрос: ${total}</p></div>`;
+  }).join("");
+
+  return `<div class="stats-block"><h3>${esc(title)}</h3><p class="hint">${esc(description)}</p>${content || '<p class="hint">Пока нет данных для отображения.</p>'}</div>`;
+}
+
 async function renderStats() {
-  shell('<section class="hero"><div class="eyebrow">COMMUNITY DATA</div><h1>Статистика<br><span>предпочтений</span></h1><div class="stats-block"><h3>Демо-данные</h3><p class="hint">Искусственный пример для демонстрации интерфейса. Не является ответами участников.</p>' +
-    demoStats.map(x => `<div class="stat-row"><span>${x.label}</span><strong>${x.value}%</strong><i style="width:${x.value}%"></i></div>`).join("") +
-    '</div><div class="stats-block"><h3>Реальные ответы участников</h3><p class="hint" id="real-stats">Загружаем агрегированные данные…</p></div></section>');
+  shell('<section class="hero"><div class="eyebrow">COMMUNITY DATA</div><h1>Статистика<br><span>предпочтений</span></h1><div id="stats-content">' +
+    renderStatsGroup("Смоделированная выборка", "Условные результаты 128 анкет, созданные для заполнения статистики до появления достаточного числа реальных ответов. Это синтетические данные, а не реальные участники.", syntheticStats) +
+    '<div class="stats-block"><h3>Реальные ответы участников</h3><p class="hint" id="real-stats">Загружаем агрегированные данные…</p></div></div></section>');
   try {
     const data = await loadRealStats();
     const target = root.querySelector("#real-stats");
-    target.innerHTML = data.length ? data.map(x => {
-      const q = questions[Number(x.question_index) - 1];
-      const option = q?.options.find(([code]) => code === x.answer_code);
-      const label = option?.[1] ?? x.answer_code;
-      return `<div class="stat-row"><span>Вопрос ${Number(x.question_index)}: ${esc(label)}</span><strong>${Number(x.response_count)}</strong></div>`;
-    }).join("") : "Пока нет ответов для отображения.";
-  } catch (e) { root.querySelector("#real-stats").textContent = "Реальная статистика появится после настройки базы данных."; }
+    target.outerHTML = renderStatsGroup("Реальные ответы участников", "Агрегированные ответы пользователей, прошедших опрос.", data);
+  } catch (e) {
+    const target = root.querySelector("#real-stats");
+    if (target) target.textContent = "Не удалось загрузить реальные ответы. Попробуй обновить страницу позже.";
+  }
 }
 
 async function start() {
