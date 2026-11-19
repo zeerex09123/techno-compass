@@ -21,3 +21,11 @@ button{font:inherit;cursor:pointer}.shell{max-width:1080px;min-height:100vh;marg
 .stats-question .stat-row i{opacity:.8}
 .stats-total{margin:8px 0 0;text-align:right;color:#75819b;font:10px 'DM Mono',monospace}
 .stats-block>.hint{margin:0 0 12px}
+
+/* Statistics */
+.stats-question{padding:16px 0;border-top:1px solid #ffffff16}
+.stats-question h4{font-size:14px;line-height:1.5;margin:0 0 8px;color:#dce5f5}
+.stats-question .stat-row{font-size:12px;align-items:flex-start}
+.stats-question .stat-row span{max-width:75%;line-height:1.5}
+.stats-question .stat-row strong{white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px;color:#65e5d1}
+.stats-question .stat-row i{height:3px;opacity:.8}
