@@ -1,7 +1,7 @@
 import "./styles.css";
 import { signIn, signOut, getSession } from "./auth/auth.js";
 import { questions, saveAnswers } from "./quiz/quiz.js";
-import { syntheticStats, loadRealStats } from "./statistics/statistics.js";
+import { loadRealStats } from "./statistics/statistics.js";
 import { isSupabaseConfigured, supabase } from "./database/supabase.js";
 
 const root = document.querySelector("#app");
@@ -68,65 +68,48 @@ function renderResult() {
   root.querySelector("#logout").addEventListener("click", handleLogout);
 }
 
-function renderStatsGroup(title, description, rows) {
-  const grouped = new Map();
-  rows.forEach(row => {
-    const questionIndex = Number(row.question_index);
-    if (!Number.isInteger(questionIndex) || questionIndex < 1 || questionIndex > questions.length) return;
-    if (!grouped.has(questionIndex)) grouped.set(questionIndex, []);
-    grouped.get(questionIndex).push({ code: row.answer_code, count: Number(row.response_count) || 0 });
-  });
+const overviewIndicators = [
+  { questionIndex: 1, title: "Предпочитаемый бренд видеокарты", values: [["nvidia","NVIDIA",52],["amd","AMD",35],["intel","Intel Arc",13]] },
+  { questionIndex: 6, title: "Предпочитаемый процессор", values: [["amd","AMD Ryzen",54],["intel","Intel Core",38],["both","Оба варианта",6],["none","Без разницы",2]] },
+  { questionIndex: 13, title: "Оптимальный объём ОЗУ", values: [["16","16 ГБ",12],["32","32 ГБ",48],["64","64 ГБ",32],["128","128 ГБ и больше",8]] },
+  { questionIndex: 23, title: "Основное использование ПК", values: [["gaming","Игры",58],["work","Работа и учёба",15],["create","Монтаж, 3D и творчество",12],["mixed","Всего понемногу",15]] },
+  { questionIndex: 24, title: "Игровое разрешение", values: [["1080","Full HD (1080p)",28],["1440","Quad HD (1440p)",48],["4k","4K",18],["other","Зависит от игры",6]] },
+  { questionIndex: 28, title: "Подход к сборке ПК", values: [["value","Максимум за свои деньги",35],["balanced","Сбалансированная система",42],["premium","Премиум без компромиссов",13],["enthusiast","Эксперименты и кастомизация",10]] }
+];
 
-  const content = questions.map((question, index) => {
-    const entries = grouped.get(index + 1) ?? [];
-    const total = entries.reduce((sum, entry) => sum + entry.count, 0);
-    if (!total) return "";
-    return `<div class="stats-question"><h4>${esc(question.title)}</h4>${entries.map(entry => {
-      const option = question.options.find(([code]) => code === entry.code);
-      const label = option?.[1] ?? entry.code ?? "Неизвестный ответ";
-      const percent = Math.round(entry.count / total * 100);
-      return `<div class="stat-row"><span>${esc(label)}</span><strong>${percent}% · ${entry.count}</strong><i style="width:${percent}%"></i></div>`;
-    }).join("")}<p class="stats-total">Ответов на вопрос: ${total}</p></div>`;
-  }).join("");
-
-  return `<div class="stats-block"><h3>${esc(title)}</h3><p class="hint">${esc(description)}</p>${content || '<p class="hint">Пока нет данных для отображения.</p>'}</div>`;
+function renderIndicator(title, entries, total, usePercent = true) {
+  return `<div class="stats-question"><h4>${esc(title)}</h4>${entries.map(entry => {
+    const percent = total ? entry.count / total * 100 : 0;
+    const shown = usePercent ? `${Math.round(percent)}%` : entry.count;
+    return `<div class="stat-row"><span>${esc(entry.label)}</span><strong>${shown}</strong><i style="width:${percent}%"></i></div>`;
+  }).join("")}</div>`;
 }
 
 async function renderStats() {
-  shell('<section class="hero"><div class="eyebrow">COMMUNITY DATA</div><h1>Статистика<br><span>предпочтений</span></h1><div class="stats-block"><h3>Смоделированная выборка</h3><p class="hint">Условные результаты 100 участников для наглядного примера. Это искусственные данные, не реальные ответы пользователей.</p><div id="synthetic-stats"></div></div><div class="stats-block"><h3>Реальные ответы участников</h3><p class="hint">Здесь отображаются только фактически сохранённые ответы пользователей.</p><div id="real-stats">Загружаем агрегированные данные…</div></div><div class="home-actions"><button class="secondary" id="back-home">На главную</button></div></section>');
-  const syntheticTarget = root.querySelector("#synthetic-stats");
-  syntheticTarget.innerHTML = questions.map((q, qi) => {
-    const weights = q.options.map((_, oi) => 18 + ((qi * 17 + oi * 23 + 11) % 43));
-    const total = weights.reduce((sum, value) => sum + value, 0);
-    const counts = weights.map(weight => Math.round(weight / total * 100));
-    counts[counts.length - 1] += 100 - counts.reduce((sum, value) => sum + value, 0);
-    return `<div class="stats-question"><h4>${qi + 1}. ${esc(q.title)}</h4>${q.options.map(([code, label], oi) => {
-      const count = counts[oi];
-      return `<div class="stat-row"><span>${esc(label)}</span><strong>${count}%</strong><i style="width:${count}%"></i></div>`;
-    }).join("")}</div>`;
+  shell('<section class="hero"><div class="eyebrow">COMMUNITY INSIGHTS</div><h1>Главные<br><span>предпочтения</span></h1><p class="lead">Ключевые ориентиры, которые помогут понять, какое компьютерное железо может понравиться.</p><div class="stats-block"><h3>Основные показатели</h3><div id="overview-stats"></div></div><div class="stats-block"><h3>Ответы участников</h3><p class="hint">Сводка реальных ответов пользователей по тем же основным показателям.</p><div id="real-stats">Загружаем данные…</div></div><div class="home-actions"><button class="secondary" id="back-home">На главную</button></div></section>');
+  const overview = root.querySelector("#overview-stats");
+  overview.innerHTML = overviewIndicators.map(indicator => {
+    const entries = indicator.values.map(([code,label,count]) => ({code,label,count}));
+    return renderIndicator(indicator.title, entries, 100);
   }).join("");
+
   root.querySelector("#back-home").addEventListener("click", () => start());
   try {
     const data = await loadRealStats();
     const target = root.querySelector("#real-stats");
-    if (!data.length) {
-      target.textContent = "Пока нет сохранённых ответов. Пройди опрос и поделись ссылкой с друзьями!";
-    } else {
-      const groups = new Map();
-      data.forEach(item => {
-        if (!groups.has(item.question_index)) groups.set(item.question_index, []);
-        groups.get(item.question_index).push(item);
-      });
-      target.innerHTML = [...groups.entries()].map(([questionIndex, rows]) => {
-        const total = rows.reduce((sum, row) => sum + row.response_count, 0);
-        return `<div class="stats-question"><h4>${questionIndex}. ${esc(rows[0].question_title)}</h4>${rows.map(row => {
-          const pct = total ? row.response_count / total * 100 : 0;
-          return `<div class="stat-row"><span>${esc(row.answer_label)}</span><strong>${row.response_count} · ${pct.toFixed(1)}%</strong><i style="width:${pct}%"></i></div>`;
-        }).join("")}</div>`;
-      }).join("");
+    const relevant = data.filter(row => overviewIndicators.some(item => item.questionIndex === row.question_index));
+    if (!relevant.length) {
+      target.textContent = "Пока нет завершённых опросов. Здесь появятся агрегированные ответы участников.";
+      return;
     }
+    target.innerHTML = overviewIndicators.map(indicator => {
+      const rows = relevant.filter(row => row.question_index === indicator.questionIndex);
+      const total = rows.reduce((sum,row) => sum + row.response_count,0);
+      if (!total) return "";
+      return renderIndicator(indicator.title, rows.map(row => ({label:row.answer_label,count:row.response_count})), total);
+    }).join("");
   } catch (e) {
-    root.querySelector("#real-stats").textContent = "Не удалось загрузить реальные ответы. Попробуй обновить страницу позже.";
+    root.querySelector("#real-stats").textContent = "Не удалось загрузить ответы участников. Попробуй обновить страницу позже.";
   }
 }
 async function start() {
