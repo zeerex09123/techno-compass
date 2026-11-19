@@ -93,19 +93,42 @@ function renderStatsGroup(title, description, rows) {
 }
 
 async function renderStats() {
-  shell('<section class="hero"><div class="eyebrow">COMMUNITY DATA</div><h1>Статистика<br><span>предпочтений</span></h1><div id="stats-content">' +
-    renderStatsGroup("Смоделированная выборка", "Условные результаты 128 анкет, созданные для заполнения статистики до появления достаточного числа реальных ответов. Это синтетические данные, а не реальные участники.", syntheticStats) +
-    '<div class="stats-block"><h3>Реальные ответы участников</h3><p class="hint" id="real-stats">Загружаем агрегированные данные…</p></div></div></section>');
+  shell('<section class="hero"><div class="eyebrow">COMMUNITY DATA</div><h1>Статистика<br><span>предпочтений</span></h1><div class="stats-block"><h3>Смоделированная выборка</h3><p class="hint">Условные результаты 100 участников для наглядного примера. Это искусственные данные, не реальные ответы пользователей.</p><div id="synthetic-stats"></div></div><div class="stats-block"><h3>Реальные ответы участников</h3><p class="hint">Здесь отображаются только фактически сохранённые ответы пользователей.</p><div id="real-stats">Загружаем агрегированные данные…</div></div><div class="home-actions"><button class="secondary" id="back-home">На главную</button></div></section>');
+  const syntheticTarget = root.querySelector("#synthetic-stats");
+  syntheticTarget.innerHTML = questions.map((q, qi) => {
+    const weights = q.options.map((_, oi) => 18 + ((qi * 17 + oi * 23 + 11) % 43));
+    const total = weights.reduce((sum, value) => sum + value, 0);
+    const counts = weights.map(weight => Math.round(weight / total * 100));
+    counts[counts.length - 1] += 100 - counts.reduce((sum, value) => sum + value, 0);
+    return `<div class="stats-question"><h4>${qi + 1}. ${esc(q.title)}</h4>${q.options.map(([code, label], oi) => {
+      const count = counts[oi];
+      return `<div class="stat-row"><span>${esc(label)}</span><strong>${count}%</strong><i style="width:${count}%"></i></div>`;
+    }).join("")}</div>`;
+  }).join("");
+  root.querySelector("#back-home").addEventListener("click", () => start());
   try {
     const data = await loadRealStats();
     const target = root.querySelector("#real-stats");
-    target.outerHTML = renderStatsGroup("Реальные ответы участников", "Агрегированные ответы пользователей, прошедших опрос.", data);
+    if (!data.length) {
+      target.textContent = "Пока нет сохранённых ответов. Пройди опрос и поделись ссылкой с друзьями!";
+    } else {
+      const groups = new Map();
+      data.forEach(item => {
+        if (!groups.has(item.question_index)) groups.set(item.question_index, []);
+        groups.get(item.question_index).push(item);
+      });
+      target.innerHTML = [...groups.entries()].map(([questionIndex, rows]) => {
+        const total = rows.reduce((sum, row) => sum + row.response_count, 0);
+        return `<div class="stats-question"><h4>${questionIndex}. ${esc(rows[0].question_title)}</h4>${rows.map(row => {
+          const pct = total ? row.response_count / total * 100 : 0;
+          return `<div class="stat-row"><span>${esc(row.answer_label)}</span><strong>${row.response_count} · ${pct.toFixed(1)}%</strong><i style="width:${pct}%"></i></div>`;
+        }).join("")}</div>`;
+      }).join("");
+    }
   } catch (e) {
-    const target = root.querySelector("#real-stats");
-    if (target) target.textContent = "Не удалось загрузить реальные ответы. Попробуй обновить страницу позже.";
+    root.querySelector("#real-stats").textContent = "Не удалось загрузить реальные ответы. Попробуй обновить страницу позже.";
   }
 }
-
 async function start() {
   if (!isSupabaseConfigured) { renderHome(); return; }
   try {
