@@ -1,7 +1,6 @@
 import "./styles.css";
 import { signIn, signOut, getSession } from "./auth/auth.js";
 import { questions, saveAnswers } from "./quiz/quiz.js";
-import { loadRealStats } from "./statistics/statistics.js";
 import { isSupabaseConfigured, supabase } from "./database/supabase.js";
 
 const root = document.querySelector("#app");
@@ -85,8 +84,8 @@ function renderIndicator(title, entries, total, usePercent = true) {
   }).join("")}</div>`;
 }
 
-async function renderStats() {
-  shell('<section class="hero"><div class="eyebrow">COMMUNITY INSIGHTS</div><h1>Главные<br><span>предпочтения</span></h1><p class="lead">Ключевые ориентиры, которые помогут понять, какое компьютерное железо может понравиться.</p><div class="stats-block"><h3>Основные показатели</h3><div id="overview-stats"></div></div><div class="stats-block"><h3>Ответы участников</h3><p class="hint">Сводка реальных ответов пользователей по тем же основным показателям.</p><div id="real-stats">Загружаем данные…</div></div><div class="home-actions"><button class="secondary" id="back-home">На главную</button></div></section>');
+function renderStats() {
+  shell('<section class="hero"><div class="eyebrow">COMMUNITY INSIGHTS</div><h1>Главные<br><span>предпочтения</span></h1><p class="lead">Ключевые ориентиры, которые помогут понять, какое компьютерное железо может понравиться.</p><div class="stats-block"><h3>Основные показатели</h3><div id="overview-stats"></div></div><div class="home-actions"><button class="secondary" id="back-home">На главную</button></div></section>');
   const overview = root.querySelector("#overview-stats");
   overview.innerHTML = overviewIndicators.map(indicator => {
     const entries = indicator.values.map(([code,label,count]) => ({code,label,count}));
@@ -94,23 +93,6 @@ async function renderStats() {
   }).join("");
 
   root.querySelector("#back-home").addEventListener("click", () => start());
-  try {
-    const data = await loadRealStats();
-    const target = root.querySelector("#real-stats");
-    const relevant = data.filter(row => overviewIndicators.some(item => item.questionIndex === row.question_index));
-    if (!relevant.length) {
-      target.textContent = "Пока нет завершённых опросов. Здесь появятся агрегированные ответы участников.";
-      return;
-    }
-    target.innerHTML = overviewIndicators.map(indicator => {
-      const rows = relevant.filter(row => row.question_index === indicator.questionIndex);
-      const total = rows.reduce((sum,row) => sum + row.response_count,0);
-      if (!total) return "";
-      return renderIndicator(indicator.title, rows.map(row => ({label:row.answer_label,count:row.response_count})), total);
-    }).join("");
-  } catch (e) {
-    root.querySelector("#real-stats").textContent = "Не удалось загрузить ответы участников. Попробуй обновить страницу позже.";
-  }
 }
 async function start() {
   if (!isSupabaseConfigured) { renderHome(); return; }
