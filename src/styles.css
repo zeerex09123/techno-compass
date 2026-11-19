@@ -10,3 +10,14 @@ button{font:inherit;cursor:pointer}.shell{max-width:1080px;min-height:100vh;marg
 .home-actions button.secondary{background:#ffffff0a;border-color:#ffffff30;color:#dce5f5}
 .home-actions button:focus-visible{outline:2px solid #65e5d1;outline-offset:3px}
 @media(max-width:600px){.home-actions{flex-direction:column;align-items:stretch}.home-actions button{width:100%}}
+
+
+/* Readable grouped survey statistics */
+.stats-question{margin-top:24px;padding-top:18px;border-top:1px solid #ffffff18}
+.stats-question h4{font-size:14px;line-height:1.5;margin:0 0 8px;color:#e8edfb}
+.stats-question .stat-row{font-size:12px;align-items:flex-start}
+.stats-question .stat-row span{max-width:72%;line-height:1.5;color:#b9c4d8}
+.stats-question .stat-row strong{white-space:nowrap;font-family:'DM Mono',monospace;font-size:11px;color:#65e5d1}
+.stats-question .stat-row i{opacity:.8}
+.stats-total{margin:8px 0 0;text-align:right;color:#75819b;font:10px 'DM Mono',monospace}
+.stats-block>.hint{margin:0 0 12px}
