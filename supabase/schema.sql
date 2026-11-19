@@ -5,7 +5,7 @@ create table if not exists public.survey_responses (
   user_id uuid not null unique references auth.users(id) on delete cascade,
   answers jsonb not null check (
     jsonb_typeof(answers) = 'array'
-    and jsonb_array_length(answers) = 28
+    and jsonb_array_length(answers) in (28, 50)
   ),
   completed_at timestamptz not null default now()
 );
