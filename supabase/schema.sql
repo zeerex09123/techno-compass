@@ -11,38 +11,39 @@ alter table public.survey_responses enable row level security;
 
 drop policy if exists "Users can read own response" on public.survey_responses;
 create policy "Users can read own response"
-  on public.survey_responses for select
-  to authenticated
+  on public.survey_responses for select to authenticated
   using (auth.uid() = user_id);
 
 drop policy if exists "Users can insert own response" on public.survey_responses;
 create policy "Users can insert own response"
-  on public.survey_responses for insert
-  to authenticated
+  on public.survey_responses for insert to authenticated
   with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update own response" on public.survey_responses;
 create policy "Users can update own response"
-  on public.survey_responses for update
-  to authenticated
+  on public.survey_responses for update to authenticated
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 revoke all on public.survey_responses from anon, authenticated;
 grant select, insert, update on public.survey_responses to authenticated;
 
+-- Return counts grouped by question and option, never raw response rows.
 create or replace function public.get_public_survey_stats()
-returns table(answer_label text, response_count bigint)
+returns table(question_index integer, answer_code text, response_count bigint)
 language sql
 security definer
 set search_path = ''
 stable
 as $$
-  select item.value #>> '{}' as answer_label, count(*) as response_count
+  select (item.value ->> 'question_index')::integer,
+         item.value ->> 'answer_code',
+         count(*) as response_count
   from public.survey_responses r
   cross join lateral jsonb_array_elements(r.answers) as item(value)
-  group by item.value #>> '{}'
-  order by count(*) desc;
+  where jsonb_typeof(item.value) = 'object'
+  group by (item.value ->> 'question_index')::integer, item.value ->> 'answer_code'
+  order by (item.value ->> 'question_index')::integer, count(*) desc;
 $$;
 
 revoke all on function public.get_public_survey_stats() from public;
