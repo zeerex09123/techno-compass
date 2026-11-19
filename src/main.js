@@ -64,7 +64,7 @@ async function renderStats() {
     const data = await loadRealStats();
     const target = root.querySelector("#real-stats");
     target.innerHTML = data.length ? data.map(x => {
-      const q = questions[Number(x.question_index)];
+      const q = questions[Number(x.question_index) - 1];
       const option = q?.options.find(([code]) => code === x.answer_code);
       const label = option?.[1] ?? x.answer_code;
       return `<div class="stat-row"><span>Вопрос ${Number(x.question_index) + 1}: ${esc(label)}</span><strong>${Number(x.response_count)}</strong></div>`;
