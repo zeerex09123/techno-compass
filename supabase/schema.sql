@@ -15,18 +15,18 @@ alter table public.survey_responses enable row level security;
 drop policy if exists "Users can read own response" on public.survey_responses;
 create policy "Users can read own response"
   on public.survey_responses for select to authenticated
-  using (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can insert own response" on public.survey_responses;
 create policy "Users can insert own response"
   on public.survey_responses for insert to authenticated
-  with check (auth.uid() = user_id);
+  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Users can update own response" on public.survey_responses;
 create policy "Users can update own response"
   on public.survey_responses for update to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 revoke all on public.survey_responses from anon, authenticated;
 grant select, insert, update on public.survey_responses to authenticated;
