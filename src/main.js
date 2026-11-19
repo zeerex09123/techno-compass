@@ -16,7 +16,7 @@ function shell(content) {
 }
 
 function renderHome(message = "") {
-  shell(`<section class="hero"><div class="eyebrow">YOUR HARDWARE. YOUR CHOICE.</div><h1>Найди свой<br><span>техно-компас</span></h1><p class="lead">28 вопросов о комплектующих, технологиях и подходе к сборке ПК. В конце — краткий профиль твоих предпочтений.</p>
+  shell(`<section class="hero"><div class="eyebrow">YOUR HARDWARE. YOUR CHOICE.</div><h1>Найди свой<br><span>техно-компас</span></h1><p class="lead">50 вопросов о комплектующих, технологиях и подходе к сборке ПК. В конце — краткий профиль твоих предпочтений.</p>
   <div class="notice"><strong>Прозрачно о данных</strong><p>Для прохождения потребуется вход через Google или GitHub. Ответы сохраняются в базе проекта и используются в агрегированной статистике. Имя и адрес почты не отображаются в результатах.</p></div>
   <div class="auth-row">${button("Продолжить с Google",'data-provider="google"')}${button("Продолжить с GitHub",'class="secondary" data-provider="github"')}</div>
   ${!isSupabaseConfigured ? '<p class="hint">Режим настройки: сначала подключим Supabase, затем включим авторизацию.</p>' : ''}${message ? `<p class="error">${esc(message)}</p>` : ""}</section>`);
