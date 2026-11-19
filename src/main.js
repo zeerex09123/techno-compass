@@ -63,7 +63,7 @@ async function handleLogout() {
 }
 
 function renderResult() {
-  shell(`<section class="hero"><div class="eyebrow">PROFILE GENERATED</div><h1>Твой техно-<br><span>профиль готов</span></h1><p class="lead">Готово: сохранено ${answers.length} ответов. Твои ответы не публикуются по отдельности — в общей статистике отображаются только суммарные значения.</p>${button("Посмотреть статистику",'id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</section>`);
+  shell(`<section class="hero"><div class="eyebrow">PROFILE GENERATED</div><h1>Твой техно-<br><span>профиль готов</span></h1><p class="lead">Готово: сохранено ${answers.length} ответов. Твои ответы не публикуются по отдельности — в общей статистике отображаются только суммарные значения.</p><div class="home-actions">${button("Посмотреть статистику",'id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</div></section>`);
   root.querySelector("#stats").addEventListener("click", renderStats);
   root.querySelector("#logout").addEventListener("click", handleLogout);
 }
@@ -89,7 +89,7 @@ async function start() {
   try {
     session = await getSession();
     if (session) {
-      shell(`<section class="hero"><div class="eyebrow">WELCOME BACK</div><h1>Готов пройти<br><span>опрос?</span></h1><p class="lead">Вход выполнен. Ответы сохраняются под случайным идентификатором участника.</p>${button("Начать опрос",'id="start"')}${button("Статистика",'class="secondary" id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</section>`);
+      shell(`<section class="hero"><div class="eyebrow">WELCOME BACK</div><h1>Готов пройти<br><span>опрос?</span></h1><p class="lead">Вход выполнен. Ответы сохраняются под случайным идентификатором участника.</p><div class="home-actions">${button("Начать опрос",'id="start"')}${button("Статистика",'class="secondary" id="stats"')}${button("Выйти",'class="secondary" id="logout"')}</div></section>`);
       root.querySelector("#start").addEventListener("click", () => { index = 0; answers = []; renderQuiz(); });
       root.querySelector("#stats").addEventListener("click", renderStats);
       root.querySelector("#logout").addEventListener("click", handleLogout);
