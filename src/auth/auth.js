@@ -6,7 +6,7 @@ export async function signIn(provider) {
     provider,
     options: {
       // Keep the repository subpath: GitHub Pages project sites live under /<repo>/.
-      redirectTo: new URL(import.meta.env.BASE_URL, window.location.origin).toString()
+      redirectTo: new URL("/techno-compass/", window.location.origin).toString()
     }
   });
   if (error) throw error;
